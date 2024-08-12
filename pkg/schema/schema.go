@@ -130,10 +130,11 @@ type Schema struct {
 	Description          string                `yaml:"description,omitempty"          json:"description,omitempty"`
 	Title                string                `yaml:"title,omitempty"                json:"title,omitempty"`
 	Type                 StringOrArrayOfString `yaml:"type,omitempty"                 json:"type,omitempty"`
+	Not                  *Schema               `yaml:"not,omitempty"                  json:"not,omitempty"`
 	AnyOf                []*Schema             `yaml:"anyOf,omitempty"                json:"anyOf,omitempty"`
 	AllOf                []*Schema             `yaml:"allOf,omitempty"                json:"allOf,omitempty"`
 	OneOf                []*Schema             `yaml:"oneOf,omitempty"                json:"oneOf,omitempty"`
-	RequiredProperties   []string              `yaml:"-"                              json:"required,omitempty"`
+	RequiredProperties   []string              `yaml:"requiredProperties,omitempty"   json:"required,omitempty"`
 	Examples             []string              `yaml:"examples,omitempty"             json:"examples,omitempty"`
 	Enum                 []string              `yaml:"enum,omitempty"                 json:"enum,omitempty"`
 	HasData              bool                  `yaml:"-"                              json:"-"`
@@ -179,6 +180,9 @@ func (s *Schema) DisableRequiredProperties() {
 	}
 	if s.Then != nil {
 		s.Then.DisableRequiredProperties()
+	}
+	if s.Not != nil {
+		s.Not.DisableRequiredProperties()
 	}
 }
 
@@ -358,7 +362,7 @@ func typeFromTag(tag string) ([]string, error) {
 
 func FixRequiredProperties(schema *Schema) error {
 	if schema.Properties != nil {
-		requiredProperties := []string{}
+		requiredProperties := schema.RequiredProperties
 		for propName, propValue := range schema.Properties {
 			FixRequiredProperties(propValue)
 			if propValue.Required {
@@ -384,6 +388,10 @@ func FixRequiredProperties(schema *Schema) error {
 
 	if schema.Else != nil {
 		FixRequiredProperties(schema.Else)
+	}
+
+	if schema.Not != nil {
+		FixRequiredProperties(schema.Not)
 	}
 
 	if schema.Items != nil {
